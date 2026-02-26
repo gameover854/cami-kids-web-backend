@@ -1,0 +1,6 @@
+exports.generateSku = () => {
+
+}
+exports.generateBarcode = () => {
+
+}

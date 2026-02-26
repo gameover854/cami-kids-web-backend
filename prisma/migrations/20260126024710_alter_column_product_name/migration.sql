@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `images` ADD COLUMN `order` INTEGER NULL DEFAULT 0;

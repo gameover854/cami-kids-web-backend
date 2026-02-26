@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+/////////////////////////////////////////////////
+// ENUMS
+/////////////////////////////////////////////////
+
+enum PromoType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+/////////////////////////////////////////////////
+// PRODUCT
+/////////////////////////////////////////////////
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  name          String  @db.VarChar(255)
+  description   String? @db.Text
+  selling_price Int
+  compare_price Int?
+  is_active     Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Foreign Keys
+  category_id Int?
+  brand_id    Int?
+
+  // Relations
+  category Category? @relation(fields: [category_id], references: [id])
+  brand    Brand?    @relation(fields: [brand_id], references: [id])
+
+  variants   ProductVariant[]
+  attributes ProductAttribute[]
+  images     Image[]
+
+  collections CollectionProduct[]
+
+  @@map("products")
+}
+
+/////////////////////////////////////////////////
+
+model Brand {
+  id Int @id @default(autoincrement())
+
+  name        String
+  slug        String? @unique
+  logo        String?
+  description String?
+  is_active   Boolean @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // One brand → many products
+  products   Product[]
+  categories Category[]
+
+  @@map("brands")
+}
+
+/////////////////////////////////////////////////
+
+model Category {
+  id Int @id @default(autoincrement())
+
+  name      String     @db.VarChar(255)
+  slug      String?    @unique
+  parent_id Int?
+  brand_id  Int?
+  // Self relation (category tree)
+  parent    Category?  @relation("CategoryTree", fields: [parent_id], references: [id])
+  children  Category[] @relation("CategoryTree")
+
+  products Product[]
+  brand    Brand?    @relation(fields: [brand_id], references: [id])
+
+  @@map("categories")
+}
+
+/////////////////////////////////////////////////
+// VARIANT & ATTRIBUTE
+/////////////////////////////////////////////////
+
+model ProductVariant {
+  id Int @id @default(autoincrement())
+
+  sku     String @unique
+  barcode String
+  price   Int
+
+  stock_quantity Int @default(0)
+
+  // Foreign Key
+  product_id Int
+
+  // Relations
+  product Product @relation(fields: [product_id], references: [id])
+
+  attributes VariantAttribute[]
+  images     Image[]
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@map("product_variants")
+}
+
+/////////////////////////////////////////////////
+
+model ProductAttribute {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  // Foreign Key
+  product_id Int
+
+  // Relations
+  product Product                 @relation(fields: [product_id], references: [id])
+  values  ProductAttributeValue[]
+
+  @@map("product_attributes")
+}
+
+/////////////////////////////////////////////////
+
+model ProductAttributeValue {
+  id Int @id @default(autoincrement())
+
+  value String
+
+  // Foreign Key
+  attribute_id Int
+
+  // Relations
+  attribute ProductAttribute   @relation(fields: [attribute_id], references: [id])
+  variants  VariantAttribute[]
+
+  @@map("product_attribute_values")
+}
+
+/////////////////////////////////////////////////
+
+model VariantAttribute {
+  variant_id Int
+  value_id   Int
+
+  // Relations
+  variant ProductVariant        @relation(fields: [variant_id], references: [id])
+  value   ProductAttributeValue @relation(fields: [value_id], references: [id])
+
+  @@id([variant_id, value_id])
+  @@map("variant_attributes")
+}
+
+/////////////////////////////////////////////////
+// COLLECTION & PROMOTION
+/////////////////////////////////////////////////
+
+model Collection {
+  id Int @id @default(autoincrement())
+
+  name      String  @unique
+  slug      String  @unique
+  is_active Boolean @default(true)
+
+  products   CollectionProduct[]
+  promotions CollectionPromotion[]
+
+  @@map("collections")
+}
+
+/////////////////////////////////////////////////
+
+model Promotion {
+  id Int @id @default(autoincrement())
+
+  code String @unique
+  name String
+
+  type  PromoType
+  value Float
+
+  start_date DateTime?
+  end_date   DateTime?
+
+  is_active Boolean @default(true)
+
+  collections CollectionPromotion[]
+
+  @@map("promotions")
+}
+
+/////////////////////////////////////////////////
+
+model CollectionProduct {
+  collection_id Int
+  product_id    Int
+
+  // Relations
+  collection Collection @relation(fields: [collection_id], references: [id])
+  product    Product    @relation(fields: [product_id], references: [id])
+
+  @@id([collection_id, product_id])
+  @@map("collections_products")
+}
+
+/////////////////////////////////////////////////
+
+model CollectionPromotion {
+  collection_id Int
+  promotion_id  Int
+
+  // Relations
+  collection Collection @relation(fields: [collection_id], references: [id])
+  promotion  Promotion  @relation(fields: [promotion_id], references: [id])
+
+  @@id([collection_id, promotion_id])
+  @@map("collections_promotions")
+}
+
+/////////////////////////////////////////////////
+// ORDER
+/////////////////////////////////////////////////
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  total_amount     Int
+  shipping_address String @db.Text
+
+  status OrderStatus @default(PENDING)
+
+  created_at DateTime @default(now())
+
+  // Foreign Key
+  user_id Int?
+
+  // Relations
+  user    User?       @relation(fields: [user_id], references: [id])
+  items   OrderItem[]
+  payment Payment?
+
+  @@map("orders")
+}
+
+/////////////////////////////////////////////////
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  quantity          Int
+  price_at_purchase Int
+
+  // Foreign Keys
+  order_id   Int
+  variant_id Int
+
+  // Relations
+  order   Order          @relation(fields: [order_id], references: [id])
+  variant ProductVariant @relation(fields: [variant_id], references: [id])
+
+  @@map("order_items")
+}
+
+/////////////////////////////////////////////////
+// USER & CART
+/////////////////////////////////////////////////
+
+model User {
+  id Int @id @default(autoincrement())
+
+  name     String?
+  email    String  @unique
+  password String
+  phone    String?
+
+  role String @default("customer")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  orders Order[]
+  cart   Cart?
+
+  @@map("users")
+}
+
+/////////////////////////////////////////////////
+
+model Cart {
+  id Int @id @default(autoincrement())
+
+  created_at DateTime @default(now())
+
+  // Foreign Key
+  user_id Int @unique
+
+  // Relations
+  user  User       @relation(fields: [user_id], references: [id])
+  items CartItem[]
+
+  @@map("carts")
+}
+
+/////////////////////////////////////////////////
+
+model CartItem {
+  id Int @id @default(autoincrement())
+
+  quantity Int @default(1)
+
+  // Foreign Keys
+  cart_id    Int
+  variant_id Int
+
+  // Relations
+  cart    Cart           @relation(fields: [cart_id], references: [id])
+  variant ProductVariant @relation(fields: [variant_id], references: [id])
+
+  @@map("cart_items")
+}
+
+/////////////////////////////////////////////////
+// PAYMENT
+/////////////////////////////////////////////////
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  amount Int
+
+  method String
+  status String
+
+  transaction_id String?
+
+  created_at DateTime @default(now())
+
+  // Foreign Key
+  order_id Int @unique
+
+  // Relations
+  order Order @relation(fields: [order_id], references: [id])
+
+  @@map("payments")
+}
+
+/////////////////////////////////////////////////
+// IMAGE
+/////////////////////////////////////////////////
+
+model Image {
+  id Int @id @default(autoincrement())
+
+  url       String
+  public_id String?
+
+  alt_text String?
+  is_main  Boolean @default(false)
+  order    Int?    @default(0)
+
+  // Foreign Keys
+  product_id Int?
+  variant_id Int?
+
+  // Relations
+  product Product?        @relation(fields: [product_id], references: [id])
+  variant ProductVariant? @relation(fields: [variant_id], references: [id])
+
+  @@map("images")
+}

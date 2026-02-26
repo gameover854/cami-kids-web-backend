@@ -1,0 +1,122 @@
+###__________product_api__________###
+
+
+### GET ALL
+GET http://localhost:3001/api/products
+
+
+#### GET BY ID
+GET http://localhost:3001/api/products/150
+
+
+### CREATE
+POST http://localhost:3001/api/products 
+Content-Type: application/json
+
+{
+  "name": "Áo thun dài tay",
+  "original_price": 500
+}
+
+
+### UPDATE
+PUT http://localhost:3001/api/products/1
+Content-Type: application/json
+
+{
+  "name": "Áo thun updated"
+}
+
+
+### DELETE
+DELETE http://localhost:3001/api/products/1
+
+
+###__________category_api__________###
+GET http://localhost:3001/api/categories
+
+
+#### GET BY ID
+GET http://localhost:3001/api/categories/7
+
+
+### CREATE
+POST http://localhost:3001/api/categories 
+Content-Type: application/json
+
+{
+  "name": "Áo Nam",
+  "parent_id": 1
+}
+
+
+### UPDATE
+PUT http://localhost:3001/api/categories/7
+Content-Type: application/json
+
+{
+  "name": "Áo thun updated"
+}
+
+
+### DELETE
+DELETE http://localhost:3001/api/categories:id
+
+
+###__________end__________###
+
+
+###__________promotion_api__________###
+GET http://localhost:3001/api/promotions
+
+
+#### GET BY ID
+GET http://localhost:3001/api/promotions/1
+
+
+### CREATE
+POST http://localhost:3001/api/promotions 
+Content-Type: application/json
+
+{
+  "code": "ABC",
+  "type": "PERCENTAGE",
+  "value": 10,
+  "name": "Tết 2026"
+}
+
+
+### UPDATE
+PUT http://localhost:3001/api/promotions/1
+Content-Type: application/json
+
+{
+  "name": "Áo thun updated"
+}
+
+
+### DELETE
+DELETE http://localhost:3001/api/promotions:id
+
+
+###__________end__________###
+
+
+###_______upload_api___###
+POST http://localhost:3001/api/upload/single
+Content-Type: multipart/form-data; boundary=----FormBoundary123
+
+------FormBoundary123
+Content-Disposition: form-data; name="productId"
+
+101
+------FormBoundary123
+Content-Disposition: form-data; name="variantId"
+
+501
+------FormBoundary123
+Content-Disposition: form-data; name="file"; filename="anh-san-pham.png"
+Content-Type: image/png
+
+< ./anh-san-pham.png
+------FormBoundary123--

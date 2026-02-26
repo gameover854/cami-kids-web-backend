@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `promotions` MODIFY `type` ENUM('PERCENTAGE', 'FIXED_AMOUNT') NOT NULL DEFAULT 'PERCENTAGE',
+    MODIFY `start_date` DATETIME(3) NULL,
+    MODIFY `end_date` DATETIME(3) NULL;
