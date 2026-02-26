@@ -1,6 +1,6 @@
 // controllers/BrandController.js
 const brandModel = require("../models/brandModel.js");
-const { ok, fail } = require("../utils/apiResponse");
+const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
 // Lấy danh sách thương hiệu
 exports.getAll = async (req, res) => {
@@ -8,7 +8,7 @@ exports.getAll = async (req, res) => {
     const brands = await brandModel.findAll();
     return ok(res, { brands }, "Get brands successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -21,7 +21,7 @@ exports.getById = async (req, res) => {
     if (!brand) return fail(res, "Brand not found", 404);
     return ok(res, { brand }, "Get brand successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -31,7 +31,7 @@ exports.create = async (req, res) => {
     const newBrand = await brandModel.create(req.body);
     return ok(res, { brand: newBrand }, "Brand created successfully", 201);
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -43,7 +43,7 @@ exports.update = async (req, res) => {
     const updatedBrand = await brandModel.update(id, req.body);
     return ok(res, { brand: updatedBrand }, "Brand updated successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -55,6 +55,6 @@ exports.delete = async (req, res) => {
     await brandModel.delete(id);
     return ok(res, { id }, "Brand deleted successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };

@@ -1,7 +1,7 @@
 // controllers/productController.js
 const productModel = require("../models/productModel");
 const productService = require("../services/product.service");
-const { ok, fail } = require("../utils/apiResponse");
+const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
 // Lấy danh sách sản phẩm
 exports.getAll = async (req, res) => {
@@ -18,7 +18,7 @@ exports.getAll = async (req, res) => {
       200,
     );
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -31,7 +31,7 @@ exports.getById = async (req, res) => {
     if (!product) return fail(res, "Product not found", 404);
     return ok(res, { product }, "Get product successfully", 200);
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -42,7 +42,7 @@ exports.create = async (req, res) => {
     const product = await productService.createProductWithAttributes(payload);
     return ok(res, { product }, "Product created successfully.", 201);
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -55,7 +55,7 @@ exports.update = async (req, res) => {
     const updatedProduct = await productModel.update(id, updateData);
     return ok(res, { product: updatedProduct }, "Product updated successfully.");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -67,31 +67,6 @@ exports.delete = async (req, res) => {
     await productModel.delete(id);
     return ok(res, { id }, "Product deleted successfully.");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
-
-// 2. Upload ảnh (nếu có)
-// let images = [];
-// if (req.files && req.files.length > 0) {
-//     for (let file of req.files) {
-//         // Upload từng ảnh
-//         const uploadResult = await cloudinaryService.uploadBuffer(
-//             file.buffer,
-//             `cami_kids/products/${productId}`,
-//             `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-//         );
-
-//         // Lưu DB cho ảnh
-//         const img = await prisma.image.create({
-//             data: {
-//                 url: uploadResult.secure_url,
-//                 variant_id: null, // nếu chưa có variant
-//                 alt_text: null,
-//                 is_main: file.is_main || false
-//             },
-//         });
-
-//         images.push(img);
-//     }
-// }

@@ -1,6 +1,6 @@
 // controllers/PromotionController.js
 const promotionModel = require("../models/promotionModel");
-const { ok, fail } = require("../utils/apiResponse");
+const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
 // Lấy danh sách khuyến mãi
 exports.getAll = async (req, res) => {
@@ -8,7 +8,7 @@ exports.getAll = async (req, res) => {
     const promotions = await promotionModel.findAll();
     return ok(res, { promotions }, "Get promotions successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -21,7 +21,7 @@ exports.getById = async (req, res) => {
     if (!promotion) return fail(res, "Promotion not found", 404);
     return ok(res, { promotion }, "Get promotion successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -31,7 +31,7 @@ exports.create = async (req, res) => {
     const newPromotion = await promotionModel.create(req.body);
     return ok(res, { promotion: newPromotion }, "Promotion created successfully", 201);
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -43,7 +43,7 @@ exports.update = async (req, res) => {
     const updatedPromotion = await promotionModel.update(id, req.body);
     return ok(res, { promotion: updatedPromotion }, "Promotion updated successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -55,6 +55,6 @@ exports.delete = async (req, res) => {
     await promotionModel.delete(id);
     return ok(res, { id }, "Promotion deleted successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };

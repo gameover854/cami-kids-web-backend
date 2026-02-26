@@ -1,5 +1,5 @@
 const categoryModel = require("../models/categoryModel");
-const { ok, fail } = require("../utils/apiResponse");
+const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
 // Lấy danh sách danh mục
 exports.getAll = async (req, res) => {
@@ -7,7 +7,7 @@ exports.getAll = async (req, res) => {
     const categories = await categoryModel.findAll();
     return ok(res, { categories }, "Get categories successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -20,7 +20,7 @@ exports.getById = async (req, res) => {
     if (!category) return fail(res, "Category not found", 404);
     return ok(res, { category }, "Get category successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -30,7 +30,7 @@ exports.create = async (req, res) => {
     const newcategory = await categoryModel.create(req.body);
     return ok(res, { category: newcategory }, "Category created successfully", 201);
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -42,7 +42,7 @@ exports.update = async (req, res) => {
     const updatedcategory = await categoryModel.update(id, req.body);
     return ok(res, { category: updatedcategory }, "Category updated successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };
 
@@ -54,6 +54,6 @@ exports.delete = async (req, res) => {
     await categoryModel.delete(id);
     return ok(res, { id }, "Category deleted successfully");
   } catch (err) {
-    return fail(res, err.message, 500);
+    return handlePrismaError(res, err);
   }
 };

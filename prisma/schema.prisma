@@ -54,6 +54,9 @@ model Product {
   collections CollectionProduct[]
 
   @@map("products")
+  @@index([category_id], map: "idx_products_category_id")
+  @@index([is_active], map: "idx_products_is_active")
+  @@index([created_at], map: "idx_products_created_at")
 }
 
 /////////////////////////////////////////////////
@@ -261,6 +264,9 @@ model Order {
   payment Payment?
 
   @@map("orders")
+  @@index([status], map: "idx_orders_status")
+  @@index([created_at], map: "idx_orders_created_at")
+  @@index([user_id], map: "idx_orders_user_id")
 }
 
 /////////////////////////////////////////////////

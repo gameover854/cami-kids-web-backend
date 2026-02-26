@@ -1,122 +1,255 @@
-###__________product_api__________###
+@baseUrl = http://localhost:3001/api
+@adminToken = paste_admin_jwt_here
 
-
-### GET ALL
-GET http://localhost:3001/api/products
-
-
-#### GET BY ID
-GET http://localhost:3001/api/products/150
-
-
-### CREATE
-POST http://localhost:3001/api/products 
+### Login admin
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
-  "name": "Áo thun dài tay",
-  "original_price": 500
+  "email": "admin@cami.local",
+  "password": "admin123"
 }
 
+### Get current user profile
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{adminToken}}
 
-### UPDATE
-PUT http://localhost:3001/api/products/1
+### List products
+GET {{baseUrl}}/products?page=1&limit=5
+Authorization: Bearer {{adminToken}}
+
+### Get product by id
+GET {{baseUrl}}/products/1
+Authorization: Bearer {{adminToken}}
+
+### Create product
+POST {{baseUrl}}/products
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
-  "name": "Áo thun updated"
+  "product": {
+    "name": "Ao thun be trai",
+    "selling_price": 120000,
+    "compare_price": 150000,
+    "description": "Cotton 100%",
+    "category_id": 1,
+    "brand_id": 1,
+    "collection_id": [1],
+    "is_active": true
+  },
+  "attributes": [
+    { "name": "Mau", "values": ["Xanh", "Do"] },
+    { "name": "Size", "values": ["S", "M"] }
+  ],
+  "variants": [
+    { "combo": "Xanh / S", "price": 120000, "stock_quantity": 10 },
+    { "combo": "Xanh / M", "price": 120000, "stock_quantity": 8 },
+    { "combo": "Do / S", "price": 120000, "stock_quantity": 7 },
+    { "combo": "Do / M", "price": 120000, "stock_quantity": 5 }
+  ],
+  "images": [
+    {
+      "url": "https://example.com/image-1.webp",
+      "public_id": "temp/image-1",
+      "is_main": true,
+      "order": 0
+    }
+  ]
 }
 
-
-### DELETE
-DELETE http://localhost:3001/api/products/1
-
-
-###__________category_api__________###
-GET http://localhost:3001/api/categories
-
-
-#### GET BY ID
-GET http://localhost:3001/api/categories/7
-
-
-### CREATE
-POST http://localhost:3001/api/categories 
+### Update product
+PUT {{baseUrl}}/products/1
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
-  "name": "Áo Nam",
-  "parent_id": 1
+  "name": "Ao thun be trai update",
+  "selling_price": 130000,
+  "is_active": true
 }
 
+### Delete product
+DELETE {{baseUrl}}/products/1
+Authorization: Bearer {{adminToken}}
 
-### UPDATE
-PUT http://localhost:3001/api/categories/7
+### List categories
+GET {{baseUrl}}/categories
+Authorization: Bearer {{adminToken}}
+
+### Get category by id
+GET {{baseUrl}}/categories/1
+Authorization: Bearer {{adminToken}}
+
+### Create category
+POST {{baseUrl}}/categories
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
-  "name": "Áo thun updated"
+  "name": "Ao be trai",
+  "parent_id": null,
+  "brand_id": 1
 }
 
-
-### DELETE
-DELETE http://localhost:3001/api/categories:id
-
-
-###__________end__________###
-
-
-###__________promotion_api__________###
-GET http://localhost:3001/api/promotions
-
-
-#### GET BY ID
-GET http://localhost:3001/api/promotions/1
-
-
-### CREATE
-POST http://localhost:3001/api/promotions 
+### Update category
+PUT {{baseUrl}}/categories/1
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
-  "code": "ABC",
+  "name": "Ao be trai update",
+  "parent_id": null,
+  "brand_id": 1
+}
+
+### Delete category
+DELETE {{baseUrl}}/categories/1
+Authorization: Bearer {{adminToken}}
+
+### List brands
+GET {{baseUrl}}/brands
+Authorization: Bearer {{adminToken}}
+
+### Get brand by id
+GET {{baseUrl}}/brands/1
+Authorization: Bearer {{adminToken}}
+
+### Create brand
+POST {{baseUrl}}/brands
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Cami Kids",
+  "slug": "cami-kids",
+  "logo": "https://example.com/logo.png",
+  "description": "Brand for kids",
+  "is_active": true
+}
+
+### Update brand
+PUT {{baseUrl}}/brands/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Cami Kids Updated",
+  "is_active": true
+}
+
+### Delete brand
+DELETE {{baseUrl}}/brands/1
+Authorization: Bearer {{adminToken}}
+
+### List collections
+GET {{baseUrl}}/collections
+Authorization: Bearer {{adminToken}}
+
+### Get collection by id
+GET {{baseUrl}}/collections/1
+Authorization: Bearer {{adminToken}}
+
+### Create collection
+POST {{baseUrl}}/collections
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Back to School",
+  "slug": "back-to-school",
+  "is_active": true
+}
+
+### Update collection
+PUT {{baseUrl}}/collections/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Back to School 2026",
+  "slug": "back-to-school-2026",
+  "is_active": true
+}
+
+### Delete collection
+DELETE {{baseUrl}}/collections/1
+Authorization: Bearer {{adminToken}}
+
+### List promotions
+GET {{baseUrl}}/promotions
+Authorization: Bearer {{adminToken}}
+
+### Get promotion by id
+GET {{baseUrl}}/promotions/1
+Authorization: Bearer {{adminToken}}
+
+### Create promotion
+POST {{baseUrl}}/promotions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "code": "SUMMER15",
+  "name": "Summer Sale 15%",
   "type": "PERCENTAGE",
-  "value": 10,
-  "name": "Tết 2026"
+  "value": 15,
+  "start_date": "2026-05-01T00:00:00.000Z",
+  "end_date": "2026-06-30T23:59:59.000Z",
+  "is_active": true
 }
 
-
-### UPDATE
-PUT http://localhost:3001/api/promotions/1
+### Update promotion
+PUT {{baseUrl}}/promotions/1
 Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
 {
-  "name": "Áo thun updated"
+  "name": "Summer Sale 20%",
+  "value": 20,
+  "is_active": true
 }
 
+### Delete promotion
+DELETE {{baseUrl}}/promotions/1
+Authorization: Bearer {{adminToken}}
 
-### DELETE
-DELETE http://localhost:3001/api/promotions:id
+### Upload multiple images (base64 array)
+POST {{baseUrl}}/upload/multiple
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
+{
+  "files": [
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA..."
+  ]
+}
 
-###__________end__________###
+### List orders
+GET {{baseUrl}}/orders?page=1&limit=10
+Authorization: Bearer {{adminToken}}
 
+### Get order by id
+GET {{baseUrl}}/orders/1
+Authorization: Bearer {{adminToken}}
 
-###_______upload_api___###
-POST http://localhost:3001/api/upload/single
-Content-Type: multipart/form-data; boundary=----FormBoundary123
+### Update order status
+PUT {{baseUrl}}/orders/1/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
-------FormBoundary123
-Content-Disposition: form-data; name="productId"
+{
+  "status": "SHIPPED"
+}
 
-101
-------FormBoundary123
-Content-Disposition: form-data; name="variantId"
+### Update order payment
+PUT {{baseUrl}}/orders/1/payment
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
 
-501
-------FormBoundary123
-Content-Disposition: form-data; name="file"; filename="anh-san-pham.png"
-Content-Type: image/png
-
-< ./anh-san-pham.png
-------FormBoundary123--
+{
+  "amount": 627000,
+  "method": "BANK_TRANSFER",
+  "status": "SUCCESS",
+  "transaction_id": "TXN-CAMI-0001-UPDATED"
+}

@@ -6,41 +6,53 @@ const promotionController = require("../controllers/promotionController");
 const brandController = require("../controllers/brandController");
 const uploadController = require("../controllers/uploadController");
 const collectionController = require("../controllers/collectionController");
+const orderController = require("../controllers/orderController");
+const authController = require("../controllers/authController");
+const { requireAuth, requireRole } = require("../middlewares/auth");
 const {
   validateProductPayload,
   validateCategoryPayload,
   validateUploadPayload,
+  validateBrandPayload,
+  validateCollectionPayload,
+  validatePromotionPayload,
+  validateLoginPayload,
+  validateOrderStatusPayload,
+  validateOrderPaymentPayload,
 } = require("../middlewares/validateRequest");
 
-router.get("/categories", categoryController.getAll);
-router.get("/categories/:id", categoryController.getById);
-router.post("/categories", validateCategoryPayload, categoryController.create);
-router.put("/categories/:id", validateCategoryPayload, categoryController.update);
-router.delete("/categories/:id", categoryController.delete);
+router.post("/auth/login", validateLoginPayload, authController.login);
+router.get("/auth/me", requireAuth, authController.me);
 
-router.get("/products", productController.getAll);
-router.get("/products/:id", productController.getById);
-router.post("/products", validateProductPayload, productController.create);
-router.put("/products/:id", validateProductPayload, productController.update);
-router.delete("/products/:id", productController.delete);
+router.get("/categories", requireAuth, requireRole("admin"), categoryController.getAll);
+router.get("/categories/:id", requireAuth, requireRole("admin"), categoryController.getById);
+router.post("/categories", requireAuth, requireRole("admin"), validateCategoryPayload, categoryController.create);
+router.put("/categories/:id", requireAuth, requireRole("admin"), validateCategoryPayload, categoryController.update);
+router.delete("/categories/:id", requireAuth, requireRole("admin"), categoryController.delete);
 
-router.get("/promotions", promotionController.getAll);
-router.get("/promotions/:id", promotionController.getById);
-router.post("/promotions", promotionController.create);
-router.put("/promotions/:id", promotionController.update);
-router.delete("/promotions/:id", promotionController.delete);
+router.get("/products", requireAuth, requireRole("admin"), productController.getAll);
+router.get("/products/:id", requireAuth, requireRole("admin"), productController.getById);
+router.post("/products", requireAuth, requireRole("admin"), validateProductPayload, productController.create);
+router.put("/products/:id", requireAuth, requireRole("admin"), validateProductPayload, productController.update);
+router.delete("/products/:id", requireAuth, requireRole("admin"), productController.delete);
 
-router.get("/brands", brandController.getAll);
-router.get("/brands/:id", brandController.getById);
-router.post("/brands", brandController.create);
-router.put("/brands/:id", brandController.update);
-router.delete("/brands/:id", brandController.delete);
+router.get("/promotions", requireAuth, requireRole("admin"), promotionController.getAll);
+router.get("/promotions/:id", requireAuth, requireRole("admin"), promotionController.getById);
+router.post("/promotions", requireAuth, requireRole("admin"), validatePromotionPayload, promotionController.create);
+router.put("/promotions/:id", requireAuth, requireRole("admin"), validatePromotionPayload, promotionController.update);
+router.delete("/promotions/:id", requireAuth, requireRole("admin"), promotionController.delete);
 
-router.get("/collections", collectionController.getAll);
-router.get("/collections/:id", collectionController.getById);
-router.post("/collections", collectionController.create);
-router.put("/collections/:id", collectionController.update);
-router.delete("/collections/:id", collectionController.delete);
+router.get("/brands", requireAuth, requireRole("admin"), brandController.getAll);
+router.get("/brands/:id", requireAuth, requireRole("admin"), brandController.getById);
+router.post("/brands", requireAuth, requireRole("admin"), validateBrandPayload, brandController.create);
+router.put("/brands/:id", requireAuth, requireRole("admin"), validateBrandPayload, brandController.update);
+router.delete("/brands/:id", requireAuth, requireRole("admin"), brandController.delete);
+
+router.get("/collections", requireAuth, requireRole("admin"), collectionController.getAll);
+router.get("/collections/:id", requireAuth, requireRole("admin"), collectionController.getById);
+router.post("/collections", requireAuth, requireRole("admin"), validateCollectionPayload, collectionController.create);
+router.put("/collections/:id", requireAuth, requireRole("admin"), validateCollectionPayload, collectionController.update);
+router.delete("/collections/:id", requireAuth, requireRole("admin"), collectionController.delete);
 
 // router.post(
 //   "/upload/single",
@@ -48,6 +60,23 @@ router.delete("/collections/:id", collectionController.delete);
 //   uploadController.uploadSingleImage
 // );
 
-router.post("/upload/multiple", validateUploadPayload, uploadController.uploadMultiple);
+router.post("/upload/multiple", requireAuth, requireRole("admin"), validateUploadPayload, uploadController.uploadMultiple);
+
+router.get("/orders", requireAuth, requireRole("admin"), orderController.getAll);
+router.get("/orders/:id", requireAuth, requireRole("admin"), orderController.getById);
+router.put(
+  "/orders/:id/status",
+  requireAuth,
+  requireRole("admin"),
+  validateOrderStatusPayload,
+  orderController.updateStatus,
+);
+router.put(
+  "/orders/:id/payment",
+  requireAuth,
+  requireRole("admin"),
+  validateOrderPaymentPayload,
+  orderController.updatePayment,
+);
 
 module.exports = router;

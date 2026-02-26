@@ -1,5 +1,5 @@
 const cloudinaryService = require("../services/cloudinary.service");
-const { ok, fail } = require("../utils/apiResponse");
+const { ok, handlePrismaError } = require("../utils/apiResponse");
 
 exports.uploadMultiple = async (req, res) => {
   try {
@@ -18,6 +18,6 @@ exports.uploadMultiple = async (req, res) => {
 
     return ok(res, results, "Upload successful");
   } catch (error) {
-    return fail(res, "Upload failed", 500, [error.message]);
+    return handlePrismaError(res, error);
   }
 };

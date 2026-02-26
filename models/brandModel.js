@@ -15,7 +15,17 @@ class brandModel {
 
   // Lấy thương hiệu theo ID
   static async findById(id) {
-    return await prisma.brand.findUnique({ where: { id } });
+    return await prisma.brand.findUnique({
+      where: { id },
+      include: {
+        categories: {
+          include: {
+            parent: true,
+            children: true,
+          },
+        },
+      },
+    });
   }
 
   // Cập nhật thương hiệu theo ID
