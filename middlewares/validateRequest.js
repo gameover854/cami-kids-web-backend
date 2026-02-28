@@ -236,6 +236,36 @@ function validateLoginPayload(req, res, next) {
   return next();
 }
 
+function validateRegisterPayload(req, res, next) {
+  const { email, password, name, phone } = req.body || {};
+  const errors = [];
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!email || typeof email !== "string") {
+    errors.push("email is required and must be a string");
+  }
+  if (typeof email === "string" && !emailRegex.test(email.trim())) {
+    errors.push("email must be a valid email format");
+  }
+  if (!password || typeof password !== "string") {
+    errors.push("password is required and must be a string");
+  }
+  if (typeof password === "string" && password.length < 8) {
+    errors.push("password must be at least 8 characters");
+  }
+  if (name !== undefined && name !== null && typeof name !== "string") {
+    errors.push("name must be a string");
+  }
+  if (phone !== undefined && phone !== null && typeof phone !== "string") {
+    errors.push("phone must be a string");
+  }
+
+  if (errors.length > 0) {
+    return fail(res, "Validation failed", 422, errors);
+  }
+  return next();
+}
+
 function validateOrderStatusPayload(req, res, next) {
   const validStatus = ["PENDING", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"];
   const { status } = req.body || {};
@@ -296,6 +326,7 @@ module.exports = {
   validateCollectionPayload,
   validatePromotionPayload,
   validateLoginPayload,
+  validateRegisterPayload,
   validateOrderStatusPayload,
   validateOrderPaymentPayload,
 };

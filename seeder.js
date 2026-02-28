@@ -1,4 +1,10 @@
 const prisma = require("./config/prisma");
+const bcrypt = require("bcryptjs");
+
+async function hashPassword(plainPassword) {
+  const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
+  return bcrypt.hash(plainPassword, saltRounds);
+}
 
 async function clearDatabase() {
   await prisma.variantAttribute.deleteMany();
@@ -124,6 +130,8 @@ async function createProductWithDetails(data, ids) {
 
 async function seed() {
   await clearDatabase();
+  const adminPasswordHash = await hashPassword("admin123");
+  const customerPasswordHash = await hashPassword("customer123");
 
   const brands = await prisma.$transaction([
     prisma.brand.create({
@@ -447,7 +455,7 @@ async function seed() {
       data: {
         name: "Admin Cami",
         email: "admin@cami.local",
-        password: "admin123",
+        password: adminPasswordHash,
         phone: "0900000001",
         role: "admin",
       },
@@ -456,7 +464,7 @@ async function seed() {
       data: {
         name: "Nguyen An",
         email: "an.nguyen@cami.local",
-        password: "customer123",
+        password: customerPasswordHash,
         phone: "0900000002",
         role: "customer",
       },
@@ -465,7 +473,7 @@ async function seed() {
       data: {
         name: "Tran Binh",
         email: "binh.tran@cami.local",
-        password: "customer123",
+        password: customerPasswordHash,
         phone: "0900000003",
         role: "customer",
       },

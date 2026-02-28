@@ -7,6 +7,11 @@ function isBcryptHash(value) {
   return typeof value === "string" && value.startsWith("$2");
 }
 
+async function hashPassword(plainPassword) {
+  const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
+  return bcrypt.hash(plainPassword, saltRounds);
+}
+
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -62,6 +67,42 @@ exports.login = async (req, res) => {
       },
       "Login successful",
     );
+  } catch (err) {
+    return handlePrismaError(res, err);
+  }
+};
+
+exports.register = async (req, res) => {
+  try {
+    const { email, password, name, phone } = req.body || {};
+
+    const existedUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existedUser) {
+      return fail(res, "Email already exists", 409, ["email is already in use"]);
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const createdUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name: name || null,
+        phone: phone || null,
+        role: "customer",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        phone: true,
+      },
+    });
+
+    return ok(res, { user: createdUser }, "Register successful", 201);
   } catch (err) {
     return handlePrismaError(res, err);
   }
