@@ -157,7 +157,8 @@ function validateCollectionPayload(req, res, next) {
 }
 
 function validatePromotionPayload(req, res, next) {
-  const { code, name, type, value, start_date, end_date, is_active } = req.body || {};
+  const { code, name, type, value, start_date, end_date, is_active, collection_ids } =
+    req.body || {};
   const isCreate = req.method === "POST";
   const errors = [];
   const validTypes = ["PERCENTAGE", "FIXED_AMOUNT"];
@@ -207,6 +208,15 @@ function validatePromotionPayload(req, res, next) {
   }
   if (is_active !== undefined && typeof is_active !== "boolean") {
     errors.push("is_active must be a boolean");
+  }
+  if (collection_ids !== undefined && !Array.isArray(collection_ids)) {
+    errors.push("collection_ids must be an array");
+  }
+  if (
+    Array.isArray(collection_ids) &&
+    collection_ids.some((item) => !Number.isInteger(item))
+  ) {
+    errors.push("collection_ids must contain only integers");
   }
 
   if (errors.length > 0) {
