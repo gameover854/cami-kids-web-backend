@@ -6,6 +6,9 @@ const brandController = require("../controllers/brandController");
 const uploadController = require("../controllers/uploadController");
 const collectionController = require("../controllers/collectionController");
 const orderController = require("../controllers/orderController");
+const customerController = require("../controllers/customerController");
+const settingController = require("../controllers/settingController");
+const variantController = require("../controllers/variantController");
 const {
   validateProductPayload,
   validateCategoryPayload,
@@ -15,6 +18,7 @@ const {
   validatePromotionPayload,
   validateOrderStatusPayload,
   validateOrderPaymentPayload,
+  validateVariantPayload,
 } = require("../middlewares/validateRequest");
 
 const router = express.Router();
@@ -30,6 +34,12 @@ router.get("/products/:id", productController.getById);
 router.post("/products", validateProductPayload, productController.create);
 router.put("/products/:id", validateProductPayload, productController.update);
 router.delete("/products/:id", productController.delete);
+router.get("/products/:productId/variants/:variantId", variantController.getById);
+router.put(
+  "/products/:productId/variants/:variantId",
+  validateVariantPayload,
+  variantController.update,
+);
 
 router.get("/promotions", promotionController.getAll);
 router.get("/promotions/:id", promotionController.getById);
@@ -55,5 +65,14 @@ router.get("/orders", orderController.getAll);
 router.get("/orders/:id", orderController.getById);
 router.put("/orders/:id/status", validateOrderStatusPayload, orderController.updateStatus);
 router.put("/orders/:id/payment", validateOrderPaymentPayload, orderController.updatePayment);
+
+router.get("/customers", customerController.getAll);
+router.get("/customers/:id", customerController.getById);
+router.post("/customers", customerController.create);
+router.put("/customers/:id", customerController.update);
+router.delete("/customers/:id", customerController.delete);
+
+router.get("/settings", settingController.get);
+router.put("/settings", settingController.update);
 
 module.exports = router;

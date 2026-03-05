@@ -68,8 +68,8 @@ exports.createProductWithAttributes = async (payload) => {
             product_id: product.id,
             price: item.price ?? product.selling_price,
             stock_quantity: item.stock_quantity || 0,
-            barcode: "unknown",
-            sku: `${product.id}-${item.combo}`,
+            barcode: item.barcode || "unknown",
+            sku: buildVariantSku(product.id, item, index),
             attributes: {
               create: (combo[index]?.value_ids || []).map((item) => {
                 return { value_id: item };
@@ -82,6 +82,145 @@ exports.createProductWithAttributes = async (payload) => {
   });
 
   return product;
+};
+
+exports.updateProductWithReplace = async (productId, payload) => {
+  const dataAttribute = payload.attributes || [];
+  const dataVariant = payload.variants || [];
+  const dataImage = payload.images || [];
+
+  let updatedProduct;
+
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new Error("Product not found");
+    }
+
+    const productInput = payload.product || payload;
+    const collectionIds = Array.isArray(productInput.collection_id)
+      ? [...new Set(productInput.collection_id.map((id) => Number(id)))]
+      : [];
+
+    updatedProduct = await tx.product.update({
+      where: { id: productId },
+      data: {
+        name: productInput.name,
+        selling_price: productInput.selling_price,
+        compare_price: productInput.compare_price,
+        description: productInput.description,
+        is_active: productInput.is_active,
+        brand: productInput.brand_id
+          ? { connect: { id: Number(productInput.brand_id) } }
+          : { disconnect: true },
+        category: productInput.category_id
+          ? { connect: { id: Number(productInput.category_id) } }
+          : { disconnect: true },
+      },
+    });
+
+    await tx.collectionProduct.deleteMany({ where: { product_id: productId } });
+    if (collectionIds.length > 0) {
+      await tx.collectionProduct.createMany({
+        data: collectionIds.map((collectionId) => ({
+          product_id: productId,
+          collection_id: Number(collectionId),
+        })),
+      });
+    }
+
+    await tx.image.deleteMany({ where: { product_id: productId } });
+    if (dataImage.length > 0) {
+      await tx.image.createMany({
+        data: dataImage.map((image, index) => ({
+          product_id: productId,
+          url: image.url,
+          public_id: image.public_id || null,
+          is_main: Boolean(image.is_main),
+          order: Number.isInteger(image.order) ? image.order : index,
+        })),
+      });
+    }
+
+    await tx.variantAttribute.deleteMany({
+      where: { variant: { product_id: productId } },
+    });
+    await tx.image.deleteMany({ where: { variant: { product_id: productId } } });
+    await tx.productVariant.deleteMany({ where: { product_id: productId } });
+    await tx.productAttributeValue.deleteMany({
+      where: { attribute: { product_id: productId } },
+    });
+    await tx.productAttribute.deleteMany({ where: { product_id: productId } });
+
+    const attributeIds = [];
+    for (const attr of dataAttribute) {
+      const attribute = await tx.productAttribute.create({
+        data: {
+          name: attr.name,
+          product_id: productId,
+        },
+      });
+
+      if (Array.isArray(attr.values) && attr.values.length > 0) {
+        await tx.productAttributeValue.createMany({
+          data: attr.values.map((value) => ({
+            attribute_id: attribute.id,
+            value: String(value),
+          })),
+        });
+      }
+
+      attributeIds.push(attribute.id);
+    }
+
+    let combo = [];
+    if (attributeIds.length > 0) {
+      const attributeCreated = await tx.productAttribute.findMany({
+        include: { values: true },
+        where: { id: { in: attributeIds } },
+      });
+
+      const valueCreated = attributeCreated.map((item) => item.values);
+      combo = valueCreated.reduce(
+        (before, after) => {
+          return before.flatMap((prev) => {
+            return after.map((curr) => {
+              return {
+                value_ids: prev.length ? [prev.id, curr.id] : [curr.id],
+                combo: prev.length
+                  ? `${prev.value} / ${curr.value}`
+                  : curr.value,
+              };
+            });
+          });
+        },
+        [{ value_ids: [], combo: "" }],
+      );
+    }
+
+    for (let [index, item] of dataVariant.entries()) {
+      await tx.productVariant.create({
+        data: {
+          product_id: productId,
+          price: item.price ?? updatedProduct.selling_price,
+          stock_quantity: item.stock_quantity || 0,
+          barcode: item.barcode || "unknown",
+          sku: buildVariantSku(productId, item, index),
+          attributes: {
+            create: (combo[index]?.value_ids || []).map((valueId) => ({
+              value_id: valueId,
+            })),
+          },
+        },
+      });
+    }
+  });
+
+  return updatedProduct;
 };
 
 exports.getAllProductWithPaginate = async (page, limit, filters) => {
@@ -198,5 +337,19 @@ const buildDataProductFromPayload = (payload) => {
   };
 
   return data;
+};
+
+const buildVariantSku = (productId, variant, index) => {
+  const manualSku = String(variant?.sku || "").trim();
+  if (manualSku) {
+    return manualSku;
+  }
+
+  const combo = String(variant?.combo || "").trim();
+  if (combo) {
+    return `${productId}-${combo}`;
+  }
+
+  return `${productId}-v${index + 1}`;
 };
 

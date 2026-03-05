@@ -1,0 +1,9 @@
+{
+  "store_name": "Cami Kids",
+  "support_email": "support@cami.local",
+  "support_phone": "",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "auto_cancel_hours": 24,
+  "low_stock_threshold": 5,
+  "allow_guest_checkout": false
+}

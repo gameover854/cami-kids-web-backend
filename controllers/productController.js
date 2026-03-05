@@ -51,10 +51,16 @@ exports.update = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (Number.isNaN(id)) return fail(res, "Invalid product id", 400);
-    const updateData = req.body.product || req.body;
-    const updatedProduct = await productModel.update(id, updateData);
+    const payload = req.body || {};
+    const updatedProduct = await productService.updateProductWithReplace(
+      id,
+      payload,
+    );
     return ok(res, { product: updatedProduct }, "Product updated successfully.");
   } catch (err) {
+    if (err.message === "Product not found") {
+      return fail(res, "Product not found", 404);
+    }
     return handlePrismaError(res, err);
   }
 };

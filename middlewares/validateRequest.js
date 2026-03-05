@@ -328,6 +328,37 @@ function validateOrderPaymentPayload(req, res, next) {
   return next();
 }
 
+function validateVariantPayload(req, res, next) {
+  const { sku, barcode, price, stock_quantity } = req.body || {};
+  const errors = [];
+
+  if (sku !== undefined && typeof sku !== "string") {
+    errors.push("sku must be a string");
+  }
+  if (barcode !== undefined && typeof barcode !== "string") {
+    errors.push("barcode must be a string");
+  }
+  if (
+    price !== undefined &&
+    (!Number.isInteger(price) || Number.isNaN(price) || price < 0)
+  ) {
+    errors.push("price must be a non-negative integer");
+  }
+  if (
+    stock_quantity !== undefined &&
+    (!Number.isInteger(stock_quantity) ||
+      Number.isNaN(stock_quantity) ||
+      stock_quantity < 0)
+  ) {
+    errors.push("stock_quantity must be a non-negative integer");
+  }
+
+  if (errors.length > 0) {
+    return fail(res, "Validation failed", 422, errors);
+  }
+  return next();
+}
+
 module.exports = {
   validateProductPayload,
   validateCategoryPayload,
@@ -339,4 +370,5 @@ module.exports = {
   validateRegisterPayload,
   validateOrderStatusPayload,
   validateOrderPaymentPayload,
+  validateVariantPayload,
 };
