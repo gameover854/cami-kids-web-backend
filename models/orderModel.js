@@ -1,6 +1,20 @@
 const prisma = require("../config/prisma");
 
 class OrderModel {
+  static isValidStatusTransition(fromStatus, toStatus) {
+    if (fromStatus === toStatus) return true;
+
+    const allowedTransitions = {
+      PENDING: ["PAID", "CANCELLED"],
+      PAID: ["SHIPPED", "CANCELLED"],
+      SHIPPED: ["COMPLETED", "CANCELLED"],
+      COMPLETED: ["CANCELLED"],
+      CANCELLED: [],
+    };
+
+    return (allowedTransitions[fromStatus] || []).includes(toStatus);
+  }
+
   static async findAll(page, limit, filters) {
     const { status, user_id, sort } = filters || {};
     const where = {
@@ -99,6 +113,9 @@ class OrderModel {
       }
 
       const previousStatus = existingOrder.status;
+      if (!OrderModel.isValidStatusTransition(previousStatus, status)) {
+        throw new Error("Invalid order status transition");
+      }
 
       // Chỉ trừ tồn khi chuyển sang COMPLETED lần đầu.
       if (status === "COMPLETED" && previousStatus !== "COMPLETED") {

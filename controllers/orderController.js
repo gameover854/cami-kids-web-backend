@@ -52,6 +52,9 @@ exports.updateStatus = async (req, res) => {
     if (err.message === "Order not found") {
       return fail(res, "Order not found", 404);
     }
+    if (err.message === "Invalid order status transition") {
+      return fail(res, "Invalid order status transition", 409);
+    }
     if (err.message === "Insufficient stock for order completion") {
       return fail(res, "Insufficient stock for order completion", 409);
     }
