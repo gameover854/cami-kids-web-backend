@@ -49,6 +49,12 @@ exports.updateStatus = async (req, res) => {
     const updatedOrder = await orderModel.updateStatus(id, req.body.status);
     return ok(res, { order: updatedOrder }, "Order status updated successfully");
   } catch (err) {
+    if (err.message === "Order not found") {
+      return fail(res, "Order not found", 404);
+    }
+    if (err.message === "Insufficient stock for order completion") {
+      return fail(res, "Insufficient stock for order completion", 409);
+    }
     return handlePrismaError(res, err);
   }
 };

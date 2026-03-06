@@ -81,9 +81,64 @@ class OrderModel {
   }
 
   static async updateStatus(id, status) {
-    return prisma.order.update({
-      where: { id },
-      data: { status },
+    return prisma.$transaction(async (tx) => {
+      const existingOrder = await tx.order.findUnique({
+        where: { id },
+        include: {
+          items: {
+            select: {
+              variant_id: true,
+              quantity: true,
+            },
+          },
+        },
+      });
+
+      if (!existingOrder) {
+        throw new Error("Order not found");
+      }
+
+      const previousStatus = existingOrder.status;
+
+      // Chỉ trừ tồn khi chuyển sang COMPLETED lần đầu.
+      if (status === "COMPLETED" && previousStatus !== "COMPLETED") {
+        for (const item of existingOrder.items) {
+          const updated = await tx.productVariant.updateMany({
+            where: {
+              id: item.variant_id,
+              stock_quantity: { gte: item.quantity },
+            },
+            data: {
+              stock_quantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+          if (updated.count === 0) {
+            throw new Error("Insufficient stock for order completion");
+          }
+        }
+      }
+
+      // Nếu hủy từ trạng thái COMPLETED thì hoàn tồn kho.
+      if (status === "CANCELLED" && previousStatus === "COMPLETED") {
+        for (const item of existingOrder.items) {
+          await tx.productVariant.update({
+            where: { id: item.variant_id },
+            data: {
+              stock_quantity: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: { status },
+      });
     });
   }
 
