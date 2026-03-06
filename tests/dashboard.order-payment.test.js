@@ -234,6 +234,34 @@ test("GET /api/dashboard/summary should calculate revenue metrics from SUCCESS p
   assert.equal(hasFailedProduct, false);
 });
 
+test("GET /api/dashboard/summary should align pending/completed/low-stock metrics with database", async () => {
+  const token = await getAdminToken();
+
+  const [expectedPending, expectedCompleted, expectedLowStock] = await Promise.all([
+    prisma.order.count({
+      where: { status: ORDER_STATUS.PENDING },
+    }),
+    prisma.order.count({
+      where: { status: ORDER_STATUS.COMPLETED },
+    }),
+    prisma.productVariant.count({
+      where: { stock_quantity: { lte: 5 } },
+    }),
+  ]);
+
+  const res = await request(app)
+    .get("/api/dashboard/summary")
+    .set("Authorization", `Bearer ${token}`);
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.success, true);
+
+  const summary = res.body?.data?.summary;
+  assert.equal(summary.pending_orders, expectedPending);
+  assert.equal(summary.completed_orders, expectedCompleted);
+  assert.equal(summary.low_stock_variants, expectedLowStock);
+});
+
 test("PUT /api/orders/:id/payment should create then update payment", async () => {
   const token = await getAdminToken();
   const order = await createOrderFixture();

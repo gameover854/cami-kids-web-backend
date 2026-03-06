@@ -311,3 +311,41 @@ Validation:
 - business rule:
   - when creating payment: require `amount`, `method`, `status`
   - `amount` must not exceed `order.total_amount`
+
+## Dashboard
+
+### GET `/dashboard/summary`
+Success `200`:
+```json
+{
+  "success": true,
+  "message": "Get dashboard summary successfully",
+  "data": {
+    "summary": {
+      "total_revenue": 1000000,
+      "total_orders": 50,
+      "pending_orders": 8,
+      "completed_orders": 20,
+      "new_customers": 12,
+      "average_order_value": 250000,
+      "low_stock_variants": 15,
+      "top_products": [
+        {
+          "product_id": 1,
+          "product_name": "Ao thun be trai basic",
+          "total_quantity": 120,
+          "total_revenue": 24000000
+        }
+      ]
+    }
+  }
+}
+```
+
+Metric definitions:
+- `total_revenue`: sum `payment.amount` with `payment.status = SUCCESS`
+- `average_order_value`: average `payment.amount` with `payment.status = SUCCESS` (rounded)
+- `top_products`: aggregate from `order_items` belonging to orders with `payment.status = SUCCESS`
+- `pending_orders`: count orders where `order.status = PENDING`
+- `completed_orders`: count orders where `order.status = COMPLETED`
+- `low_stock_variants`: count product variants where `stock_quantity <= 5`
