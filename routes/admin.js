@@ -9,6 +9,7 @@ const orderController = require("../controllers/orderController");
 const customerController = require("../controllers/customerController");
 const settingController = require("../controllers/settingController");
 const variantController = require("../controllers/variantController");
+const dashboardController = require("../controllers/dashboardController");
 const {
   validateProductPayload,
   validateCategoryPayload,
@@ -74,5 +75,6 @@ router.delete("/customers/:id", customerController.delete);
 
 router.get("/settings", settingController.get);
 router.put("/settings", settingController.update);
+router.get("/dashboard/summary", dashboardController.getSummary);
 
 module.exports = router;
