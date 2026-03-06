@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const { ORDER_STATUS } = require("../constants/order");
+const { PAYMENT_STATUS } = require("../constants/payment");
 
 class DashboardModel {
   static async getSummary() {
@@ -22,10 +23,11 @@ class DashboardModel {
       prisma.order.count({ where: { status: ORDER_STATUS.COMPLETED } }),
       prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { status: "SUCCESS" },
+        where: { status: PAYMENT_STATUS.SUCCESS },
       }),
-      prisma.order.aggregate({
-        _avg: { total_amount: true },
+      prisma.payment.aggregate({
+        _avg: { amount: true },
+        where: { status: PAYMENT_STATUS.SUCCESS },
       }),
       prisma.user.count({
         where: {
@@ -36,6 +38,15 @@ class DashboardModel {
         where: { stock_quantity: { lte: 5 } },
       }),
       prisma.orderItem.findMany({
+        where: {
+          order: {
+            payment: {
+              is: {
+                status: PAYMENT_STATUS.SUCCESS,
+              },
+            },
+          },
+        },
         select: {
           quantity: true,
           price_at_purchase: true,
@@ -81,7 +92,7 @@ class DashboardModel {
       pending_orders: pendingOrders,
       completed_orders: completedOrders,
       new_customers: newCustomers,
-      average_order_value: Math.round(avgOrderValueAgg?._avg?.total_amount || 0),
+      average_order_value: Math.round(avgOrderValueAgg?._avg?.amount || 0),
       low_stock_variants: lowStockVariants,
       top_products: topProducts,
     };
