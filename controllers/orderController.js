@@ -70,6 +70,12 @@ exports.updatePayment = async (req, res) => {
     const payment = await orderModel.updatePayment(id, req.body);
     return ok(res, { payment }, "Order payment updated successfully");
   } catch (err) {
+    if (err.message === "Order not found") {
+      return fail(res, "Order not found", 404);
+    }
+    if (err.message === "amount, method, status are required for new payment") {
+      return fail(res, "amount, method, status are required for new payment", 422);
+    }
     return handlePrismaError(res, err);
   }
 };

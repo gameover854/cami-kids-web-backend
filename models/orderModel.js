@@ -160,11 +160,27 @@ class OrderModel {
   }
 
   static async updatePayment(orderId, payload) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true },
+    });
+    if (!order) {
+      throw new Error("Order not found");
+    }
+
     const existing = await prisma.payment.findUnique({
       where: { order_id: orderId },
     });
 
     if (!existing) {
+      if (
+        payload.amount === undefined ||
+        !payload.method ||
+        !payload.status
+      ) {
+        throw new Error("amount, method, status are required for new payment");
+      }
+
       return prisma.payment.create({
         data: {
           order_id: orderId,
