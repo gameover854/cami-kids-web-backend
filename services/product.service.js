@@ -149,7 +149,9 @@ exports.updateProductWithReplace = async (productId, payload) => {
     await tx.variantAttribute.deleteMany({
       where: { variant: { product_id: productId } },
     });
-    await tx.image.deleteMany({ where: { variant: { product_id: productId } } });
+    await tx.image.deleteMany({
+      where: { variant: { product_id: productId } },
+    });
     await tx.productVariant.deleteMany({ where: { product_id: productId } });
     await tx.productAttributeValue.deleteMany({
       where: { attribute: { product_id: productId } },
@@ -225,12 +227,20 @@ exports.updateProductWithReplace = async (productId, payload) => {
 
 exports.getAllProductWithPaginate = async (page, limit, filters) => {
   let conditions;
-  const { category_id, is_active, sort } = filters;
+  const { category_id, is_active, sort, keyword } = filters;
 
   conditions = {
     ...(category_id ? { category_id: Number(category_id) } : {}),
     ...(is_active !== undefined && is_active !== null && is_active !== ""
       ? { is_active: Boolean(Number(is_active)) }
+      : {}),
+    ...(keyword
+      ? {
+          OR: [
+            { name: { contains: String(keyword) } },
+            { description: { contains: String(keyword) } },
+          ],
+        }
       : {}),
   };
 
@@ -352,4 +362,3 @@ const buildVariantSku = (productId, variant, index) => {
 
   return `${productId}-v${index + 1}`;
 };
-
