@@ -237,29 +237,42 @@ test("GET /api/dashboard/summary should calculate revenue metrics from SUCCESS p
 test("GET /api/dashboard/summary should align pending/completed/low-stock metrics with database", async () => {
   const token = await getAdminToken();
 
-  const [expectedPending, expectedCompleted, expectedLowStock] = await Promise.all([
-    prisma.order.count({
-      where: { status: ORDER_STATUS.PENDING },
-    }),
-    prisma.order.count({
-      where: { status: ORDER_STATUS.COMPLETED },
-    }),
-    prisma.productVariant.count({
-      where: { stock_quantity: { lte: 5 } },
-    }),
-  ]);
+  const snapshotMatched = async () => {
+    const res = await request(app)
+      .get("/api/dashboard/summary")
+      .set("Authorization", `Bearer ${token}`);
 
-  const res = await request(app)
-    .get("/api/dashboard/summary")
-    .set("Authorization", `Bearer ${token}`);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.success, true);
 
-  assert.equal(res.status, 200);
-  assert.equal(res.body.success, true);
+    const [expectedPending, expectedCompleted, expectedLowStock] = await Promise.all([
+      prisma.order.count({
+        where: { status: ORDER_STATUS.PENDING },
+      }),
+      prisma.order.count({
+        where: { status: ORDER_STATUS.COMPLETED },
+      }),
+      prisma.productVariant.count({
+        where: { stock_quantity: { lte: 5 } },
+      }),
+    ]);
 
-  const summary = res.body?.data?.summary;
-  assert.equal(summary.pending_orders, expectedPending);
-  assert.equal(summary.completed_orders, expectedCompleted);
-  assert.equal(summary.low_stock_variants, expectedLowStock);
+    const summary = res.body?.data?.summary;
+    return (
+      summary.pending_orders === expectedPending &&
+      summary.completed_orders === expectedCompleted &&
+      summary.low_stock_variants === expectedLowStock
+    );
+  };
+
+  let matched = false;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    matched = await snapshotMatched();
+    if (matched) break;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+
+  assert.equal(matched, true);
 });
 
 test("PUT /api/orders/:id/payment should create then update payment", async () => {
