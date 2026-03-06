@@ -31,8 +31,15 @@ Transition khong hop le:
 
 ## Rule payment
 - Endpoint: `PUT /api/orders/:id/payment`.
+- Enum gia tri:
+  - `method`: `COD | BANK_TRANSFER | MOMO | VNPAY | CREDIT_CARD`.
+  - `status`: `PENDING | SUCCESS | FAILED | REFUNDED`.
 - Neu payment chua ton tai:
   - Bat buoc day du `amount`, `method`, `status`.
+  - `amount` khong duoc vuot qua `order.total_amount`.
+  - `method`, `status` khong duoc la chuoi rong.
   - Thieu field bat buoc: tra `422`.
 - Neu payment da ton tai:
   - Cho phep patch theo tung field.
+  - Neu gui `amount` thi khong duoc vuot qua `order.total_amount`.
+  - Neu gui `method`/`status` thi khong duoc la chuoi rong.

@@ -76,6 +76,21 @@ exports.updatePayment = async (req, res) => {
     if (err.message === "amount, method, status are required for new payment") {
       return fail(res, "amount, method, status are required for new payment", 422);
     }
+    if (err.message === "method must be a non-empty string") {
+      return fail(res, "method must be a non-empty string", 422);
+    }
+    if (err.message === "status must be a non-empty string") {
+      return fail(res, "status must be a non-empty string", 422);
+    }
+    if (err.message === "payment amount cannot exceed order total amount") {
+      return fail(res, "payment amount cannot exceed order total amount", 422);
+    }
+    if (err.message === "Invalid payment method") {
+      return fail(res, "Invalid payment method", 422);
+    }
+    if (err.message === "Invalid payment status") {
+      return fail(res, "Invalid payment status", 422);
+    }
     return handlePrismaError(res, err);
   }
 };

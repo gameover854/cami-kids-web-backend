@@ -1,4 +1,6 @@
 const { fail } = require("../utils/apiResponse");
+const { PAYMENT_METHODS, PAYMENT_STATUSES } = require("../constants/payment");
+const { ORDER_STATUSES } = require("../constants/order");
 
 function validateProductPayload(req, res, next) {
   const payload = req.body || {};
@@ -277,15 +279,14 @@ function validateRegisterPayload(req, res, next) {
 }
 
 function validateOrderStatusPayload(req, res, next) {
-  const validStatus = ["PENDING", "PAID", "SHIPPED", "COMPLETED", "CANCELLED"];
   const { status } = req.body || {};
   const errors = [];
 
   if (!status || typeof status !== "string") {
     errors.push("status is required and must be a string");
   }
-  if (status && !validStatus.includes(status)) {
-    errors.push("status must be one of PENDING, PAID, SHIPPED, COMPLETED, CANCELLED");
+  if (status && !ORDER_STATUSES.includes(status)) {
+    errors.push(`status must be one of ${ORDER_STATUSES.join(", ")}`);
   }
 
   if (errors.length > 0) {
@@ -307,8 +308,28 @@ function validateOrderPaymentPayload(req, res, next) {
   if (method !== undefined && typeof method !== "string") {
     errors.push("method must be a string");
   }
+  if (typeof method === "string" && method.trim().length === 0) {
+    errors.push("method must be a non-empty string");
+  }
+  if (
+    typeof method === "string" &&
+    method.trim().length > 0 &&
+    !PAYMENT_METHODS.includes(method.trim())
+  ) {
+    errors.push(`method must be one of ${PAYMENT_METHODS.join(", ")}`);
+  }
   if (status !== undefined && typeof status !== "string") {
     errors.push("status must be a string");
+  }
+  if (typeof status === "string" && status.trim().length === 0) {
+    errors.push("status must be a non-empty string");
+  }
+  if (
+    typeof status === "string" &&
+    status.trim().length > 0 &&
+    !PAYMENT_STATUSES.includes(status.trim())
+  ) {
+    errors.push(`status must be one of ${PAYMENT_STATUSES.join(", ")}`);
   }
   if (transaction_id !== undefined && transaction_id !== null && typeof transaction_id !== "string") {
     errors.push("transaction_id must be a string or null");

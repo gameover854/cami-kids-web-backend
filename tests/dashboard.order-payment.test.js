@@ -7,6 +7,8 @@ process.env.NODE_ENV = "test";
 
 const { app } = require("../server");
 const prisma = require("../config/prisma");
+const { ORDER_STATUS } = require("../constants/order");
+const { PAYMENT_METHODS, PAYMENT_STATUSES } = require("../constants/payment");
 
 let cachedAdminToken = null;
 const createdOrderIds = [];
@@ -31,7 +33,7 @@ async function createOrderFixture() {
     data: {
       total_amount: 150000,
       shipping_address: "fixture-shipping-address",
-      status: "PENDING",
+      status: ORDER_STATUS.PENDING,
     },
   });
   createdOrderIds.push(order.id);
@@ -69,15 +71,15 @@ test("PUT /api/orders/:id/payment should create then update payment", async () =
     .set("Authorization", `Bearer ${token}`)
     .send({
       amount: 150000,
-      method: "BANK_TRANSFER",
-      status: "PAID",
+      method: PAYMENT_METHODS[1],
+      status: PAYMENT_STATUSES[1],
       transaction_id: "tx-fixture-001",
     });
 
   assert.equal(createRes.status, 200);
   assert.equal(createRes.body.success, true);
   assert.equal(createRes.body?.data?.payment?.order_id, order.id);
-  assert.equal(createRes.body?.data?.payment?.status, "PAID");
+  assert.equal(createRes.body?.data?.payment?.status, PAYMENT_STATUSES[1]);
 
   const updateRes = await request(app)
     .put(`/api/orders/${order.id}/payment`)
@@ -89,7 +91,7 @@ test("PUT /api/orders/:id/payment should create then update payment", async () =
 
   assert.equal(updateRes.status, 200);
   assert.equal(updateRes.body.success, true);
-  assert.equal(updateRes.body?.data?.payment?.status, "REFUNDED");
+  assert.equal(updateRes.body?.data?.payment?.status, PAYMENT_STATUSES[3]);
   assert.equal(updateRes.body?.data?.payment?.transaction_id, "tx-fixture-002");
 });
 
@@ -101,12 +103,90 @@ test("PUT /api/orders/:id/payment should return 422 if creating payment without 
     .put(`/api/orders/${order.id}/payment`)
     .set("Authorization", `Bearer ${token}`)
     .send({
-      status: "PAID",
+      status: PAYMENT_STATUSES[1],
     });
 
   assert.equal(res.status, 422);
   assert.equal(res.body.success, false);
   assert.match(String(res.body.message), /required for new payment/i);
+});
+
+test("PUT /api/orders/:id/payment should return 404 for non-existing order", async () => {
+  const token = await getAdminToken();
+  const res = await request(app)
+    .put("/api/orders/99999999/payment")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      amount: 1000,
+      method: PAYMENT_METHODS[0],
+      status: PAYMENT_STATUSES[0],
+    });
+
+  assert.equal(res.status, 404);
+  assert.equal(res.body.success, false);
+  assert.match(String(res.body.message), /order not found/i);
+});
+
+test("PUT /api/orders/:id/payment should return 422 if amount exceeds order total", async () => {
+  const token = await getAdminToken();
+  const order = await createOrderFixture();
+
+  const res = await request(app)
+    .put(`/api/orders/${order.id}/payment`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      amount: 200000,
+      method: PAYMENT_METHODS[0],
+      status: PAYMENT_STATUSES[0],
+    });
+
+  assert.equal(res.status, 422);
+  assert.equal(res.body.success, false);
+  assert.match(String(res.body.message), /cannot exceed order total amount/i);
+});
+
+test("PUT /api/orders/:id/payment should return 422 for blank method/status", async () => {
+  const token = await getAdminToken();
+  const order = await createOrderFixture();
+
+  const createRes = await request(app)
+    .put(`/api/orders/${order.id}/payment`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      amount: 150000,
+      method: PAYMENT_METHODS[0],
+      status: PAYMENT_STATUSES[1],
+    });
+  assert.equal(createRes.status, 200);
+
+  const updateRes = await request(app)
+    .put(`/api/orders/${order.id}/payment`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      method: "   ",
+    });
+
+  assert.equal(updateRes.status, 422);
+  assert.equal(updateRes.body.success, false);
+  assert.match(String(updateRes.body.message), /validation failed/i);
+});
+
+test("PUT /api/orders/:id/payment should return 422 for invalid payment enum values", async () => {
+  const token = await getAdminToken();
+  const order = await createOrderFixture();
+
+  const res = await request(app)
+    .put(`/api/orders/${order.id}/payment`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      amount: 150000,
+      method: "BITCOIN",
+      status: ORDER_STATUS.PAID,
+    });
+
+  assert.equal(res.status, 422);
+  assert.equal(res.body.success, false);
+  assert.match(String(res.body.message), /validation failed/i);
 });
 
 after(async () => {

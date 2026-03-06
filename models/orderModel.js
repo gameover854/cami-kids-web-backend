@@ -1,18 +1,11 @@
 const prisma = require("../config/prisma");
+const { PAYMENT_METHODS, PAYMENT_STATUSES } = require("../constants/payment");
+const { ORDER_STATUS, ORDER_STATUS_TRANSITIONS } = require("../constants/order");
 
 class OrderModel {
   static isValidStatusTransition(fromStatus, toStatus) {
     if (fromStatus === toStatus) return true;
-
-    const allowedTransitions = {
-      PENDING: ["PAID", "CANCELLED"],
-      PAID: ["SHIPPED", "CANCELLED"],
-      SHIPPED: ["COMPLETED", "CANCELLED"],
-      COMPLETED: ["CANCELLED"],
-      CANCELLED: [],
-    };
-
-    return (allowedTransitions[fromStatus] || []).includes(toStatus);
+    return (ORDER_STATUS_TRANSITIONS[fromStatus] || []).includes(toStatus);
   }
 
   static async findAll(page, limit, filters) {
@@ -118,7 +111,10 @@ class OrderModel {
       }
 
       // Chỉ trừ tồn khi chuyển sang COMPLETED lần đầu.
-      if (status === "COMPLETED" && previousStatus !== "COMPLETED") {
+      if (
+        status === ORDER_STATUS.COMPLETED &&
+        previousStatus !== ORDER_STATUS.COMPLETED
+      ) {
         for (const item of existingOrder.items) {
           const updated = await tx.productVariant.updateMany({
             where: {
@@ -139,7 +135,10 @@ class OrderModel {
       }
 
       // Nếu hủy từ trạng thái COMPLETED thì hoàn tồn kho.
-      if (status === "CANCELLED" && previousStatus === "COMPLETED") {
+      if (
+        status === ORDER_STATUS.CANCELLED &&
+        previousStatus === ORDER_STATUS.COMPLETED
+      ) {
         for (const item of existingOrder.items) {
           await tx.productVariant.update({
             where: { id: item.variant_id },
@@ -162,7 +161,7 @@ class OrderModel {
   static async updatePayment(orderId, payload) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true },
+      select: { id: true, total_amount: true },
     });
     if (!order) {
       throw new Error("Order not found");
@@ -172,11 +171,32 @@ class OrderModel {
       where: { order_id: orderId },
     });
 
+    const normalizedMethod =
+      typeof payload.method === "string" ? payload.method.trim() : payload.method;
+    const normalizedStatus =
+      typeof payload.status === "string" ? payload.status.trim() : payload.status;
+
+    if (normalizedMethod !== undefined && !normalizedMethod) {
+      throw new Error("method must be a non-empty string");
+    }
+    if (normalizedStatus !== undefined && !normalizedStatus) {
+      throw new Error("status must be a non-empty string");
+    }
+    if (normalizedMethod && !PAYMENT_METHODS.includes(normalizedMethod)) {
+      throw new Error("Invalid payment method");
+    }
+    if (normalizedStatus && !PAYMENT_STATUSES.includes(normalizedStatus)) {
+      throw new Error("Invalid payment status");
+    }
+    if (payload.amount !== undefined && payload.amount > order.total_amount) {
+      throw new Error("payment amount cannot exceed order total amount");
+    }
+
     if (!existing) {
       if (
         payload.amount === undefined ||
-        !payload.method ||
-        !payload.status
+        !normalizedMethod ||
+        !normalizedStatus
       ) {
         throw new Error("amount, method, status are required for new payment");
       }
@@ -185,8 +205,8 @@ class OrderModel {
         data: {
           order_id: orderId,
           amount: payload.amount,
-          method: payload.method,
-          status: payload.status,
+          method: normalizedMethod,
+          status: normalizedStatus,
           transaction_id: payload.transaction_id || null,
         },
       });
@@ -196,8 +216,8 @@ class OrderModel {
       where: { order_id: orderId },
       data: {
         amount: payload.amount ?? existing.amount,
-        method: payload.method ?? existing.method,
-        status: payload.status ?? existing.status,
+        method: normalizedMethod ?? existing.method,
+        status: normalizedStatus ?? existing.status,
         transaction_id:
           payload.transaction_id !== undefined
             ? payload.transaction_id

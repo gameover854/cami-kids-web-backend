@@ -1,4 +1,5 @@
 const prisma = require("../config/prisma");
+const { ORDER_STATUS } = require("../constants/order");
 
 class DashboardModel {
   static async getSummary() {
@@ -17,11 +18,11 @@ class DashboardModel {
       orderItems,
     ] = await Promise.all([
       prisma.order.count(),
-      prisma.order.count({ where: { status: "PENDING" } }),
-      prisma.order.count({ where: { status: "COMPLETED" } }),
+      prisma.order.count({ where: { status: ORDER_STATUS.PENDING } }),
+      prisma.order.count({ where: { status: ORDER_STATUS.COMPLETED } }),
       prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { status: "PAID" },
+        where: { status: "SUCCESS" },
       }),
       prisma.order.aggregate({
         _avg: { total_amount: true },

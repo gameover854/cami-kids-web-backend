@@ -304,7 +304,10 @@ Request body (at least one field required):
 ```
 Validation:
 - `amount`: optional, non-negative integer
-- `method`: optional, string
-- `status`: optional, string
+- `method`: optional, non-empty string, one of `COD | BANK_TRANSFER | MOMO | VNPAY | CREDIT_CARD`
+- `status`: optional, non-empty string, one of `PENDING | SUCCESS | FAILED | REFUNDED`
 - `transaction_id`: optional, string or `null`
 - at least one field must be provided
+- business rule:
+  - when creating payment: require `amount`, `method`, `status`
+  - `amount` must not exceed `order.total_amount`
