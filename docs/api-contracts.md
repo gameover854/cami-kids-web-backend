@@ -234,6 +234,13 @@ Query params:
 - `limit`: number (default `5`)
 - `filters`: object-like query (`filters[category_id]`, `filters[is_active]`, etc.)
 
+### GET `/products/:id`
+Success `200`:
+- `data.product` includes:
+  - `variants` with `attributes` (each attribute includes `value`)
+  - `attributes` with `values`
+  - `images`, `category`, `brand`, `collections`
+
 ### POST `/products`
 Supports two shapes:
 - flat product payload, or
@@ -243,6 +250,34 @@ Validation minimums:
 - create: `product.name` required, `product.selling_price` non-negative integer, `product.is_active` boolean
 - update: checks only provided fields
 - `attributes`, `variants`, `images` must be arrays when provided
+
+Behavior:
+- When `attributes` and `variants` are provided, backend creates variant-attribute combinations in order of `attributes`.
+- `sku` rule:
+  - if `variant.sku` has value, keep it
+  - else auto-generate from `productId` + `variant.combo`
+
+### PUT `/products/:id`
+Request body:
+- use the same nested shape as `POST /products`
+
+Behavior (replace semantics):
+- `attributes`, `variants`, `images`, `collections` are **replaced fully** when provided.
+- Removing any attribute/variant/image in edit will hard-delete it after save.
+
+### PUT `/products/:productId/variants/:variantId`
+Request body (partial update):
+```json
+{
+  "sku": "SKU-001",
+  "barcode": "BAR-001",
+  "price": 199000,
+  "stock_quantity": 12
+}
+```
+Validation:
+- `sku`, `barcode`: optional strings
+- `price`, `stock_quantity`: optional non-negative integers
 
 ## Upload
 
