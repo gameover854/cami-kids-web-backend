@@ -232,7 +232,14 @@ Success `200`: updated promotion with `collections` relation included.
 Query params:
 - `page`: number (default `1`)
 - `limit`: number (default `5`)
-- `filters`: object-like query (`filters[category_id]`, `filters[is_active]`, etc.)
+- `filters`: object-like query (`filters[category_id]`, `filters[is_active]`, `filters[brand_id]`, etc.)
+
+Filter format (multi):
+- `category_id`, `is_active`, `brand_id` support comma-separated values. Example:
+  - `filters[category_id]=1,3`
+  - `filters[brand_id]=2,5`
+Behavior:
+- `filters[category_id]` will match products in the selected categories and all their descendants.
 
 ### GET `/products/:id`
 Success `200`:

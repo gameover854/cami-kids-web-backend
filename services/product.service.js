@@ -196,15 +196,64 @@ exports.updateProductWithReplace = async (productId, payload) => {
   return updatedProduct;
 };
 
+const parseFilterIds = (value) => {
+  if (value === undefined || value === null || value === "") return [];
+  if (Array.isArray(value)) {
+    return value.map((item) => Number(item)).filter((item) => Number.isInteger(item));
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item));
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? [parsed] : [];
+};
+
+const resolveCategoryDescendants = async (categoryIds) => {
+  const uniqueIds = [...new Set(categoryIds)];
+  if (uniqueIds.length === 0) return [];
+
+  const visited = new Set(uniqueIds);
+  let frontier = uniqueIds;
+
+  while (frontier.length > 0) {
+    const children = await prisma.category.findMany({
+      where: { parent_id: { in: frontier } },
+      select: { id: true },
+    });
+
+    const next = [];
+    for (const child of children) {
+      if (!visited.has(child.id)) {
+        visited.add(child.id);
+        next.push(child.id);
+      }
+    }
+
+    frontier = next;
+  }
+
+  return [...visited];
+};
+
 exports.getAllProductWithPaginate = async (page, limit, filters) => {
   let conditions;
-  const { category_id, is_active, sort, keyword } = filters;
+  const { category_id, is_active, brand_id, sort, keyword } = filters;
+
+  const categoryIds = parseFilterIds(category_id);
+  const expandedCategoryIds = await resolveCategoryDescendants(categoryIds);
+  const brandIds = parseFilterIds(brand_id);
+  const statusIds = parseFilterIds(is_active);
+  const isActiveValues = statusIds.map((value) => Boolean(Number(value)));
 
   conditions = {
-    ...(category_id ? { category_id: Number(category_id) } : {}),
-    ...(is_active !== undefined && is_active !== null && is_active !== ""
-      ? { is_active: Boolean(Number(is_active)) }
+    ...(expandedCategoryIds.length > 0
+      ? { category_id: { in: expandedCategoryIds } }
       : {}),
+    ...(brandIds.length > 0 ? { brand_id: { in: brandIds } } : {}),
+    ...(isActiveValues.length > 0 ? { is_active: { in: isActiveValues } } : {}),
     ...(keyword
       ? {
           OR: [
