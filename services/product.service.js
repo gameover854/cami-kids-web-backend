@@ -36,31 +36,13 @@ exports.createProductWithAttributes = async (payload) => {
         where: { id: { in: attributeIds } },
       });
 
-      const valueCreated = attributeCreated.map((item) => {
-        return item.values;
-      });
+      const attributeById = new Map(attributeCreated.map((item) => [item.id, item]));
+      const valueCreated = attributeIds.map(
+        (attributeId) => attributeById.get(attributeId)?.values || [],
+      );
 
       //TẠO BIẾN THỂ
-      const combo = valueCreated.reduce(
-        (before, after) => {
-          return before.flatMap((prev) => {
-            return after.map((curr) => {
-              return {
-                value_ids: prev.length ? [prev.id, curr.id] : [curr.id],
-                combo: prev.length
-                  ? `${prev.value} / ${curr.value}`
-                  : curr.value,
-              };
-            });
-          });
-        },
-        [
-          {
-            value_ids: [],
-            combo: "",
-          },
-        ],
-      );
+      const combo = buildVariantCombos(valueCreated);
 
       for (let [index, item] of dataVariant.entries()) {
         await tx.productVariant.create({
@@ -186,22 +168,11 @@ exports.updateProductWithReplace = async (productId, payload) => {
         where: { id: { in: attributeIds } },
       });
 
-      const valueCreated = attributeCreated.map((item) => item.values);
-      combo = valueCreated.reduce(
-        (before, after) => {
-          return before.flatMap((prev) => {
-            return after.map((curr) => {
-              return {
-                value_ids: prev.length ? [prev.id, curr.id] : [curr.id],
-                combo: prev.length
-                  ? `${prev.value} / ${curr.value}`
-                  : curr.value,
-              };
-            });
-          });
-        },
-        [{ value_ids: [], combo: "" }],
+      const attributeById = new Map(attributeCreated.map((item) => [item.id, item]));
+      const valueCreated = attributeIds.map(
+        (attributeId) => attributeById.get(attributeId)?.values || [],
       );
+      combo = buildVariantCombos(valueCreated);
     }
 
     for (let [index, item] of dataVariant.entries()) {
@@ -362,3 +333,20 @@ const buildVariantSku = (productId, variant, index) => {
 
   return `${productId}-v${index + 1}`;
 };
+
+function buildVariantCombos(valueGroups) {
+  if (!Array.isArray(valueGroups) || valueGroups.length === 0) return [];
+
+  return valueGroups.reduce(
+    (acc, values) =>
+      acc.flatMap((prev) =>
+        values.map((curr) => ({
+          value_ids: prev.value_ids.length
+            ? [...prev.value_ids, curr.id]
+            : [curr.id],
+          combo: prev.combo ? `${prev.combo} / ${curr.value}` : curr.value,
+        })),
+      ),
+    [{ value_ids: [], combo: "" }],
+  );
+}
