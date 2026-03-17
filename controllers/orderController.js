@@ -1,6 +1,24 @@
 const orderModel = require("../models/orderModel");
 const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
+exports.create = async (req, res) => {
+  try {
+    const order = await orderModel.createOrderWithPayment(req.body);
+    return ok(res, { order }, "Order created successfully", 201);
+  } catch (err) {
+    if (err.message === "Variant not found") {
+      return fail(res, "Variant not found", 404);
+    }
+    if (err.message === "Insufficient stock") {
+      return fail(res, "Insufficient stock", 409);
+    }
+    if (err.message === "Payment amount cannot exceed order total amount") {
+      return fail(res, "Payment amount cannot exceed order total amount", 422);
+    }
+    return handlePrismaError(res, err);
+  }
+};
+
 exports.getAll = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;

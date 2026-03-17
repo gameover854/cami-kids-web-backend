@@ -225,6 +225,127 @@ class OrderModel {
       },
     });
   }
+
+  static async createOrderWithPayment(payload) {
+    const { items, shipping_address, user_id, payment, customer_name, customer_phone } =
+      payload;
+
+    return prisma.$transaction(async (tx) => {
+      const variantIds = items.map((item) => item.variant_id);
+      const variants = await tx.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: {
+          id: true,
+          price: true,
+          stock_quantity: true,
+          product: { select: { id: true, name: true } },
+        },
+      });
+
+      if (variants.length !== variantIds.length) {
+        throw new Error("Variant not found");
+      }
+
+      const variantMap = new Map(variants.map((variant) => [variant.id, variant]));
+      for (const item of items) {
+        const variant = variantMap.get(item.variant_id);
+        if (!variant) {
+          throw new Error("Variant not found");
+        }
+        if (variant.stock_quantity < item.quantity) {
+          throw new Error("Insufficient stock");
+        }
+      }
+
+      const totalAmount = items.reduce((sum, item) => {
+        const variant = variantMap.get(item.variant_id);
+        return sum + (variant?.price || 0) * item.quantity;
+      }, 0);
+
+      if (payment?.amount !== undefined && payment.amount > totalAmount) {
+        throw new Error("Payment amount cannot exceed order total amount");
+      }
+
+      const orderStatus =
+        payment?.status === "SUCCESS" ? ORDER_STATUS.PAID : ORDER_STATUS.PENDING;
+
+      const order = await tx.order.create({
+        data: {
+          total_amount: totalAmount,
+          shipping_address,
+          user_id: user_id ?? null,
+          customer_name: customer_name ?? null,
+          customer_phone: customer_phone ?? null,
+          status: orderStatus,
+        },
+      });
+
+      await tx.orderItem.createMany({
+        data: items.map((item) => {
+          const variant = variantMap.get(item.variant_id);
+          return {
+            order_id: order.id,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            price_at_purchase: variant?.price || 0,
+          };
+        }),
+      });
+
+      if (payment) {
+        const normalizedMethod =
+          typeof payment.method === "string" ? payment.method.trim() : payment.method;
+        const normalizedStatus =
+          typeof payment.status === "string" ? payment.status.trim() : payment.status;
+
+        if (normalizedMethod && !PAYMENT_METHODS.includes(normalizedMethod)) {
+          throw new Error("Invalid payment method");
+        }
+        if (normalizedStatus && !PAYMENT_STATUSES.includes(normalizedStatus)) {
+          throw new Error("Invalid payment status");
+        }
+
+        await tx.payment.create({
+          data: {
+            order_id: order.id,
+            amount: payment.amount ?? totalAmount,
+            method: normalizedMethod || "COD",
+            status: normalizedStatus || "PENDING",
+            transaction_id: payment.transaction_id || null,
+          },
+        });
+      }
+
+      return tx.order.findUnique({
+        where: { id: order.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+          items: {
+            include: {
+              variant: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          payment: true,
+        },
+      });
+    });
+  }
 }
 
 module.exports = OrderModel;

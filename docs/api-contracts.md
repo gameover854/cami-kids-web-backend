@@ -324,7 +324,37 @@ Query params:
 Success `200`:
 - `data.orders`
 - `data.totalOrder`
-- `data.totalPage`
+  - `data.totalPage`
+  
+### POST `/orders`
+  Request body:
+  ```json
+  {
+    "items": [
+      { "variant_id": 1, "quantity": 2 }
+    ],
+    "shipping_address": "Tại quầy",
+    "customer_name": "Nguyễn An",
+    "customer_phone": "0900000001",
+    "user_id": null,
+    "payment": {
+      "amount": 299000,
+      "method": "COD",
+      "status": "SUCCESS",
+      "transaction_id": "TXN-0001"
+    }
+  }
+  ```
+  Validation:
+  - `items`: required, non-empty array with `variant_id`, `quantity > 0`
+  - `shipping_address`: required string
+  - `customer_name`, `customer_phone`: optional string or null
+  - `user_id`: optional integer or null
+  - `payment`: optional object
+  - `payment.amount`: optional non-negative integer
+  - `payment.method`: optional, one of `COD | BANK_TRANSFER | MOMO | VNPAY | CREDIT_CARD`
+  - `payment.status`: optional, one of `PENDING | SUCCESS | FAILED | REFUNDED`
+  - `payment.transaction_id`: optional string or null
 
 ### PUT `/orders/:id/status`
 Request body:

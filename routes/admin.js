@@ -17,6 +17,7 @@ const {
   validateBrandPayload,
   validateCollectionPayload,
   validatePromotionPayload,
+  validateOrderCreatePayload,
   validateOrderStatusPayload,
   validateOrderPaymentPayload,
   validateVariantPayload,
@@ -64,6 +65,7 @@ router.post("/upload/multiple", validateUploadPayload, uploadController.uploadMu
 
 router.get("/orders", orderController.getAll);
 router.get("/orders/:id", orderController.getById);
+router.post("/orders", validateOrderCreatePayload, orderController.create);
 router.put("/orders/:id/status", validateOrderStatusPayload, orderController.updateStatus);
 router.put("/orders/:id/payment", validateOrderPaymentPayload, orderController.updatePayment);
 

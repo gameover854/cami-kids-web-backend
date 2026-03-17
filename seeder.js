@@ -160,12 +160,15 @@ async function seed() {
     }),
   ]);
 
+  const brandIds = Object.fromEntries(brands.map((brand) => [brand.slug, brand.id]));
+
   const categories = [];
   categories.push(
     await prisma.category.create({
       data: {
         name: "Be trai",
         slug: "be-trai",
+        brand_id: brandIds["cami-kids"],
       },
     }),
   );
@@ -175,6 +178,7 @@ async function seed() {
         name: "Ao thun be trai",
         slug: "ao-thun-be-trai",
         parent_id: categories[0].id,
+        brand_id: brandIds["cami-kids"],
       },
     }),
   );
@@ -184,6 +188,7 @@ async function seed() {
         name: "Quan short be trai",
         slug: "quan-short-be-trai",
         parent_id: categories[0].id,
+        brand_id: brandIds["cami-kids"],
       },
     }),
   );
@@ -193,6 +198,7 @@ async function seed() {
       data: {
         name: "Be gai",
         slug: "be-gai",
+        brand_id: brandIds["sunny-bear"],
       },
     }),
   );
@@ -202,6 +208,7 @@ async function seed() {
         name: "Vay be gai",
         slug: "vay-be-gai",
         parent_id: categories[3].id,
+        brand_id: brandIds["sunny-bear"],
       },
     }),
   );
@@ -211,6 +218,7 @@ async function seed() {
         name: "Bo mac nha be gai",
         slug: "bo-mac-nha-be-gai",
         parent_id: categories[3].id,
+        brand_id: brandIds["sunny-bear"],
       },
     }),
   );
@@ -220,6 +228,7 @@ async function seed() {
       data: {
         name: "Phu kien",
         slug: "phu-kien",
+        brand_id: brandIds["little-step"],
       },
     }),
   );
@@ -229,6 +238,7 @@ async function seed() {
         name: "Giay dep",
         slug: "giay-dep",
         parent_id: categories[6].id,
+        brand_id: brandIds["little-step"],
       },
     }),
   );

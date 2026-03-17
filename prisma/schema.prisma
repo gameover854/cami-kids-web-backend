@@ -250,6 +250,8 @@ model Order {
 
   total_amount     Int
   shipping_address String @db.Text
+  customer_name    String?
+  customer_phone   String?
 
   status OrderStatus @default(PENDING)
 

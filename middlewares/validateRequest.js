@@ -349,6 +349,88 @@ function validateOrderPaymentPayload(req, res, next) {
   return next();
 }
 
+function validateOrderCreatePayload(req, res, next) {
+  const { items, shipping_address, user_id, payment, customer_name, customer_phone } =
+    req.body || {};
+  const errors = [];
+
+  if (!Array.isArray(items) || items.length === 0) {
+    errors.push("items is required and must be a non-empty array");
+  }
+  if (
+    Array.isArray(items) &&
+    items.some(
+      (item) =>
+        !Number.isInteger(item?.variant_id) ||
+        !Number.isInteger(item?.quantity) ||
+        item.quantity <= 0,
+    )
+  ) {
+    errors.push("items must include variant_id and quantity > 0");
+  }
+  if (!shipping_address || typeof shipping_address !== "string") {
+    errors.push("shipping_address is required and must be a string");
+  }
+  if (user_id !== undefined && user_id !== null && !Number.isInteger(user_id)) {
+    errors.push("user_id must be an integer or null");
+  }
+  if (customer_name !== undefined && customer_name !== null && typeof customer_name !== "string") {
+    errors.push("customer_name must be a string or null");
+  }
+  if (customer_phone !== undefined && customer_phone !== null && typeof customer_phone !== "string") {
+    errors.push("customer_phone must be a string or null");
+  }
+  if (payment !== undefined && payment !== null && typeof payment !== "object") {
+    errors.push("payment must be an object");
+  }
+  if (payment) {
+    if (
+      payment.amount !== undefined &&
+      (!Number.isInteger(payment.amount) || payment.amount < 0)
+    ) {
+      errors.push("payment.amount must be a non-negative integer");
+    }
+    if (payment.method !== undefined && typeof payment.method !== "string") {
+      errors.push("payment.method must be a string");
+    }
+    if (typeof payment.method === "string" && payment.method.trim().length === 0) {
+      errors.push("payment.method must be a non-empty string");
+    }
+    if (
+      typeof payment.method === "string" &&
+      payment.method.trim().length > 0 &&
+      !PAYMENT_METHODS.includes(payment.method.trim())
+    ) {
+      errors.push(`payment.method must be one of ${PAYMENT_METHODS.join(", ")}`);
+    }
+    if (payment.status !== undefined && typeof payment.status !== "string") {
+      errors.push("payment.status must be a string");
+    }
+    if (typeof payment.status === "string" && payment.status.trim().length === 0) {
+      errors.push("payment.status must be a non-empty string");
+    }
+    if (
+      typeof payment.status === "string" &&
+      payment.status.trim().length > 0 &&
+      !PAYMENT_STATUSES.includes(payment.status.trim())
+    ) {
+      errors.push(`payment.status must be one of ${PAYMENT_STATUSES.join(", ")}`);
+    }
+    if (
+      payment.transaction_id !== undefined &&
+      payment.transaction_id !== null &&
+      typeof payment.transaction_id !== "string"
+    ) {
+      errors.push("payment.transaction_id must be a string or null");
+    }
+  }
+
+  if (errors.length > 0) {
+    return fail(res, "Validation failed", 422, errors);
+  }
+  return next();
+}
+
 function validateVariantPayload(req, res, next) {
   const { sku, barcode, price, stock_quantity } = req.body || {};
   const errors = [];
@@ -391,5 +473,6 @@ module.exports = {
   validateRegisterPayload,
   validateOrderStatusPayload,
   validateOrderPaymentPayload,
+  validateOrderCreatePayload,
   validateVariantPayload,
 };
