@@ -196,6 +196,61 @@ exports.updateProductWithReplace = async (productId, payload) => {
   return updatedProduct;
 };
 
+exports.deleteProductWithRelations = async (productId) => {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.product.findUnique({
+      where: { id: productId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new Error("Product not found");
+    }
+
+    const variantIds = await tx.productVariant.findMany({
+      where: { product_id: productId },
+      select: { id: true },
+    });
+    const variantIdList = variantIds.map((item) => item.id);
+
+    if (variantIdList.length > 0) {
+      const orderItemCount = await tx.orderItem.count({
+        where: { variant_id: { in: variantIdList } },
+      });
+      const cartItemCount = await tx.cartItem.count({
+        where: { variant_id: { in: variantIdList } },
+      });
+
+      if (orderItemCount > 0 || cartItemCount > 0) {
+        throw new Error("Product is in use");
+      }
+    }
+
+    await tx.variantAttribute.deleteMany({
+      where: { variant_id: { in: variantIdList } },
+    });
+
+    const imageWhere =
+      variantIdList.length > 0
+        ? {
+            OR: [{ product_id: productId }, { variant_id: { in: variantIdList } }],
+          }
+        : { product_id: productId };
+    await tx.image.deleteMany({ where: imageWhere });
+
+    await tx.productVariant.deleteMany({ where: { product_id: productId } });
+    await tx.productAttributeValue.deleteMany({
+      where: { attribute: { product_id: productId } },
+    });
+    await tx.productAttribute.deleteMany({ where: { product_id: productId } });
+    await tx.collectionProduct.deleteMany({ where: { product_id: productId } });
+
+    await tx.product.delete({ where: { id: productId } });
+  });
+
+  return { id: productId };
+};
+
 const parseFilterIds = (value) => {
   if (value === undefined || value === null || value === "") return [];
   if (Array.isArray(value)) {
@@ -259,6 +314,16 @@ exports.getAllProductWithPaginate = async (page, limit, filters) => {
           OR: [
             { name: { contains: String(keyword) } },
             { description: { contains: String(keyword) } },
+            {
+              variants: {
+                some: {
+                  OR: [
+                    { sku: { contains: String(keyword) } },
+                    { barcode: { contains: String(keyword) } },
+                  ],
+                },
+              },
+            },
           ],
         }
       : {}),

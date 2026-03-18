@@ -70,9 +70,19 @@ exports.delete = async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     if (Number.isNaN(id)) return fail(res, "Invalid product id", 400);
-    await productModel.delete(id);
+    await productService.deleteProductWithRelations(id);
     return ok(res, { id }, "Product deleted successfully.");
   } catch (err) {
+    if (err.message === "Product not found") {
+      return fail(res, "Product not found", 404);
+    }
+    if (err.message === "Product is in use") {
+      return fail(
+        res,
+        "Product cannot be deleted because it is referenced by orders or carts",
+        409,
+      );
+    }
     return handlePrismaError(res, err);
   }
 };
