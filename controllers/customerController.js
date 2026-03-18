@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const prisma = require("../config/prisma");
 const { ok, fail, handlePrismaError } = require("../utils/apiResponse");
 
@@ -96,11 +97,15 @@ exports.create = async (req, res) => {
     if (!email || typeof email !== "string") {
       return fail(res, "email is required", 422, ["email must be a string"]);
     }
-    if (!password || typeof password !== "string" || password.length < 8) {
-      return fail(res, "password is required", 422, ["password must be at least 8 characters"]);
+    if (password && (typeof password !== "string" || password.length < 8)) {
+      return fail(res, "password is invalid", 422, ["password must be at least 8 characters"]);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const rawPassword =
+      typeof password === "string" && password.trim().length >= 8
+        ? password
+        : crypto.randomBytes(8).toString("hex");
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
     const customer = await prisma.user.create({
       data: {
         name: typeof name === "string" ? name.trim() : null,

@@ -30,6 +30,9 @@ exports.login = async (req, res) => {
     if (!user) {
       return fail(res, "Invalid credentials", 401);
     }
+    if (user.role !== "admin") {
+      return fail(res, "Forbidden", 403, ["Only admin can login"]);
+    }
 
     let validPassword = false;
     if (isBcryptHash(user.password)) {

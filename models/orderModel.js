@@ -267,13 +267,33 @@ class OrderModel {
       }
 
       const orderStatus =
-        payment?.status === "SUCCESS" ? ORDER_STATUS.PAID : ORDER_STATUS.PENDING;
+        payment?.status === "SUCCESS" ? ORDER_STATUS.COMPLETED : ORDER_STATUS.PENDING;
+
+      if (orderStatus === ORDER_STATUS.COMPLETED) {
+        for (const item of items) {
+          const updated = await tx.productVariant.updateMany({
+            where: {
+              id: item.variant_id,
+              stock_quantity: { gte: item.quantity },
+            },
+            data: {
+              stock_quantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+
+          if (updated.count === 0) {
+            throw new Error("Insufficient stock");
+          }
+        }
+      }
 
       const order = await tx.order.create({
         data: {
           total_amount: totalAmount,
           shipping_address,
-          user_id: user_id ?? null,
+          user: user_id ? { connect: { id: user_id } } : undefined,
           customer_name: customer_name ?? null,
           customer_phone: customer_phone ?? null,
           status: orderStatus,
